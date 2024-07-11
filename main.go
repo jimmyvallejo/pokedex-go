@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"github.com/jimmyvallejo/pokedex/internal/pokeapi"
+	"github.com/jimmyvallejo/pokedex-go/internal/pokeapi"
 )
 
 type cliCommand struct {
