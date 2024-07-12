@@ -11,10 +11,32 @@ import (
 	"github.com/jimmyvallejo/pokedex-go/internal/pokecache"
 )
 
+type Commander interface {
+	Execute(args []string) error
+}
+
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	commander   Commander
+}
+type SimpleCommander struct {
+	callback func() error
+}
+
+func (sc SimpleCommander) Execute(args []string) error {
+	return sc.callback()
+}
+
+type ArgCommander struct {
+	callback func(string) error
+}
+
+func (ac ArgCommander) Execute(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("this command requires an argument")
+	}
+	return ac.callback(args[0])
 }
 
 var commandMap map[string]cliCommand
@@ -23,23 +45,43 @@ func init() {
 	commandMap = map[string]cliCommand{
 		"help": {
 			name:        "help",
-			description: "Displays a help message",
-			callback:    commandHelp,
+			description: "Displays a help message.",
+			commander:   SimpleCommander{callback: commandHelp},
 		},
 		"exit": {
 			name:        "exit",
-			description: "Exit the Pokedex",
-			callback:    commandExit,
+			description: "Exit the Pokedex.",
+			commander:   SimpleCommander{callback: commandExit},
 		},
 		"map": {
 			name:        "map",
-			description: "Displays the name of 20 locations in the Pokemon World",
-			callback:    pokeapi.FetchLocations,
+			description: "Displays the name of 20 locations in the Pokemon World.",
+			commander:   SimpleCommander{callback: pokeapi.FetchLocations},
 		},
 		"mapb": {
 			name:        "mapb",
-			description: "Display the previous 20 locations in the Pokemon World",
-			callback:    pokeapi.FetchPrevious,
+			description: "Display the previous 20 locations in the Pokemon World.",
+			commander:   SimpleCommander{callback: pokeapi.FetchPrevious},
+		},
+		"explore": {
+			name:        "explore",
+			description: "Explore the different Pokemon living in a specific location.",
+			commander:   ArgCommander{callback: pokeapi.ExploreLocations},
+		},
+		"catch": {
+			name:        "catch",
+			description: "Type the name of a Pokemon to try to catch it and add to your Pokedex.",
+			commander:   ArgCommander{callback: pokeapi.CatchPokemon},
+		},
+		"inspect": {
+			name:        "inspect",
+			description: "Inspect a Pokemon in your Pokedex to view its data.",
+			commander:   ArgCommander{callback: pokeapi.InspectPokemon},
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "View all Pokemon you have caught.",
+			commander:   SimpleCommander{callback: pokeapi.ViewAllPokemon},
 		},
 	}
 }
@@ -77,8 +119,15 @@ func main() {
 		input = strings.TrimSuffix(input, "\n")
 		input = strings.ToLower(input)
 
-		if cmd, exists := commandMap[input]; exists {
-			err = cmd.callback()
+		args := strings.Fields(input)
+		if len(args) == 0 {
+			continue
+		}
+
+		commandName := args[0]
+
+		if cmd, exists := commandMap[commandName]; exists {
+			err := cmd.commander.Execute(args[1:])
 			if err != nil {
 				fmt.Println("An error occurred handling your request:", err)
 			}

@@ -10,24 +10,7 @@ import (
 	"github.com/jimmyvallejo/pokedex-go/internal/pokecache"
 )
 
-type config struct {
-	next     *string
-	previous *string
-}
 
-var locationConfig = config{next: nil, previous: nil}
-
-type responseResult struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-
-type locationResponse struct {
-	Count    int              `json:"count"`
-	Next     *string          `json:"next"`
-	Previous *string          `json:"previous"`
-	Results  []responseResult `json:"results"`
-}
 
 var cache *pokecache.Cache
 
@@ -50,7 +33,6 @@ func FetchLocations() error {
 		if err != nil {
 			return fmt.Errorf("error unmarshaling JSON: %w", err)
 		}
-		fmt.Println("cache used")
 		locationConfig.previous = cacheResult.Previous
 		locationConfig.next = cacheResult.Next
 		for _, result := range cacheResult.Results {
@@ -107,7 +89,6 @@ func FetchPrevious() error {
 		if err != nil {
 			return fmt.Errorf("error unmarshaling JSON: %w", err)
 		}
-		fmt.Println("cache used")
 		locationConfig.previous = cacheResult.Previous
 		locationConfig.next = cacheResult.Next
 		for _, result := range cacheResult.Results {
