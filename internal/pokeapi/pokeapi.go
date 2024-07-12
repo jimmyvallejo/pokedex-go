@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/jimmyvallejo/pokedex-go/internal/pokecache"
 )
 
 type config struct {
@@ -27,11 +29,34 @@ type locationResponse struct {
 	Results  []responseResult `json:"results"`
 }
 
+var cache *pokecache.Cache
+
+func InitWithCache(c *pokecache.Cache) {
+	cache = c
+}
+
 func FetchLocations() error {
-	url := "https://pokeapi.co/api/v2/location-area"
+	url := "https://pokeapi.co/api/v2/location-area?offset=0&limit=20"
 
 	if locationConfig.next != nil {
 		url = *locationConfig.next
+	}
+
+	value, exists := cache.Get(url)
+	if exists {
+
+		var cacheResult locationResponse
+		err := json.Unmarshal(value, &cacheResult)
+		if err != nil {
+			return fmt.Errorf("error unmarshaling JSON: %w", err)
+		}
+		fmt.Println("cache used")
+		locationConfig.previous = cacheResult.Previous
+		locationConfig.next = cacheResult.Next
+		for _, result := range cacheResult.Results {
+			fmt.Println(result.Name)
+		}
+		return nil
 	}
 
 	res, err := http.Get(url)
@@ -59,6 +84,7 @@ func FetchLocations() error {
 
 	locationConfig.previous = locationResult.Previous
 	locationConfig.next = locationResult.Next
+	cache.Add(url, body)
 
 	for _, result := range locationResult.Results {
 		fmt.Println(result.Name)
@@ -72,6 +98,23 @@ func FetchPrevious() error {
 		return errors.New("no previous results available")
 	}
 	url := *locationConfig.previous
+
+	value, exists := cache.Get(url)
+	if exists {
+
+		var cacheResult locationResponse
+		err := json.Unmarshal(value, &cacheResult)
+		if err != nil {
+			return fmt.Errorf("error unmarshaling JSON: %w", err)
+		}
+		fmt.Println("cache used")
+		locationConfig.previous = cacheResult.Previous
+		locationConfig.next = cacheResult.Next
+		for _, result := range cacheResult.Results {
+			fmt.Println(result.Name)
+		}
+		return nil
+	}
 
 	res, err := http.Get(url)
 	if err != nil {

@@ -31,13 +31,29 @@ func (c *Cache) Get(key string) ([]byte, bool) {
 		return nil, false
 	}
 	return entry.val, true
-
 }
 
-func makeCache(interval time.Duration) *Cache {
+func (c *Cache) reapLoop() {
+    ticker := time.NewTicker(c.interval)
+
+    for {
+        <-ticker.C
+        c.mu.Lock()
+        now := time.Now()
+        for key, entry := range c.entries {
+            if now.Sub(entry.createdAt) > c.interval {
+                delete(c.entries, key)
+            }
+        }
+        c.mu.Unlock()
+    }
+}
+
+func InitCache(interval time.Duration) *Cache {
 	cache := &Cache{
 		entries:  make(map[string]cacheEntry),
 		interval: interval,
 	}
+	go cache.reapLoop()
 	return cache
 }

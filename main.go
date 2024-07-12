@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
 	"github.com/jimmyvallejo/pokedex-go/internal/pokeapi"
+	"github.com/jimmyvallejo/pokedex-go/internal/pokecache"
 )
 
 type cliCommand struct {
@@ -61,6 +64,8 @@ func commandHelp() error {
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
+	cache := pokecache.InitCache(60 * time.Second)
+	pokeapi.InitWithCache(cache)
 
 	for {
 		fmt.Print("Pokedex > ")
